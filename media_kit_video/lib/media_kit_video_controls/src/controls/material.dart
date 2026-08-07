@@ -167,6 +167,9 @@ class MaterialVideoControlsThemeData {
   /// Whether the controls are initially visible.
   final bool visibleOnMount;
 
+  /// Notifies listeners when the controls visibility changes.
+  final ValueNotifier<bool>? visible;
+
   /// Whether to speed up on long press.
   final bool speedUpOnLongPress;
 
@@ -306,6 +309,7 @@ class MaterialVideoControlsThemeData {
     this.seekOnDoubleTapBackwardDuration = const Duration(seconds: 10),
     this.seekOnDoubleTapForwardDuration = const Duration(seconds: 10),
     this.visibleOnMount = false,
+    this.visible,
     this.speedUpOnLongPress = false,
     this.speedUpFactor = 2.0,
     this.verticalGestureSensitivity = 100,
@@ -372,6 +376,7 @@ class MaterialVideoControlsThemeData {
     Duration? seekOnDoubleTapBackwardDuration,
     Duration? seekOnDoubleTapForwardDuration,
     bool? visibleOnMount,
+    ValueNotifier<bool>? visible,
     bool? speedUpOnLongPress,
     double? speedUpFactor,
     double? verticalGestureSensitivity,
@@ -434,6 +439,7 @@ class MaterialVideoControlsThemeData {
       seekOnDoubleTapForwardDuration:
           seekOnDoubleTapForwardDuration ?? this.seekOnDoubleTapForwardDuration,
       visibleOnMount: visibleOnMount ?? this.visibleOnMount,
+      visible: visible ?? this.visible,
       speedUpOnLongPress: speedUpOnLongPress ?? this.speedUpOnLongPress,
       speedUpFactor: speedUpFactor ?? this.speedUpFactor,
       verticalGestureSensitivity:
@@ -531,7 +537,15 @@ class _MaterialVideoControls extends StatefulWidget {
 /// {@macro material_video_controls}
 class _MaterialVideoControlsState extends State<_MaterialVideoControls> {
   late bool mount;
-  late bool visible;
+  late bool _visible;
+
+  bool get visible => _visible;
+
+  set visible(bool value) {
+    _visible = value;
+    _theme(context).visible?.value = value;
+  }
+
   Timer? _timer;
 
   double _brightnessValue = 0.0;
@@ -606,7 +620,7 @@ class _MaterialVideoControlsState extends State<_MaterialVideoControls> {
     super.didChangeDependencies();
     if (subscriptions.isEmpty) {
       mount = _theme(context).visibleOnMount;
-      visible = _theme(context).visibleOnMount;
+      _visible = _theme(context).visibleOnMount;
       _volumeValue = _theme(context).initialVolume ?? 0.5;
       _brightnessValue = _theme(context).initialBrightness ?? 0.5;
       _onBrightnessReset = _theme(context).onBrightnessReset;
@@ -919,17 +933,22 @@ class _MaterialVideoControlsState extends State<_MaterialVideoControls> {
                                 }
                               }
                             },
-                            onHorizontalDragUpdate: (details) {
-                              if ((!mount && _theme(context).seekGesture) ||
-                                  (_theme(context).seekGesture &&
-                                      _theme(context)
-                                          .gesturesEnabledWhileControlsVisible)) {
-                                onHorizontalDragUpdate(details);
-                              }
-                            },
-                            onHorizontalDragEnd: (details) {
-                              onHorizontalDragEnd();
-                            },
+                            onHorizontalDragUpdate: !_theme(context).seekGesture
+                                ? null
+                                : (details) {
+                                    if ((!mount &&
+                                            _theme(context).seekGesture) ||
+                                        (_theme(context).seekGesture &&
+                                            _theme(context)
+                                                .gesturesEnabledWhileControlsVisible)) {
+                                      onHorizontalDragUpdate(details);
+                                    }
+                                  },
+                            onHorizontalDragEnd: !_theme(context).seekGesture
+                                ? null
+                                : (details) {
+                                    onHorizontalDragEnd();
+                                  },
                             onVerticalDragUpdate: (e) async {
                               final delta = e.delta.dy;
                               final Offset position = e.localPosition;

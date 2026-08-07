@@ -76,6 +76,9 @@ class MaterialDesktopVideoControlsThemeData {
   /// Whether the controls are initially visible.
   final bool visibleOnMount;
 
+  /// Notifies listeners when the controls visibility changes.
+  final ValueNotifier<bool>? visible;
+
   // GENERIC
 
   /// Padding around the controls.
@@ -189,6 +192,7 @@ class MaterialDesktopVideoControlsThemeData {
     this.modifyVolumeOnScroll = true,
     this.keyboardShortcuts,
     this.visibleOnMount = false,
+    this.visible,
     this.hideMouseOnControlsRemoval = false,
     this.padding,
     this.controlsHoverDuration = const Duration(seconds: 3),
@@ -240,6 +244,7 @@ class MaterialDesktopVideoControlsThemeData {
     bool? modifyVolumeOnScroll,
     Map<ShortcutActivator, VoidCallback>? keyboardShortcuts,
     bool? visibleOnMount,
+    ValueNotifier<bool>? visible,
     bool? hideMouseOnControlsRemoval,
     Duration? controlsHoverDuration,
     Duration? controlsTransitionDuration,
@@ -283,6 +288,7 @@ class MaterialDesktopVideoControlsThemeData {
       modifyVolumeOnScroll: modifyVolumeOnScroll ?? this.modifyVolumeOnScroll,
       keyboardShortcuts: keyboardShortcuts ?? this.keyboardShortcuts,
       visibleOnMount: visibleOnMount ?? this.visibleOnMount,
+      visible: visible ?? this.visible,
       hideMouseOnControlsRemoval:
           hideMouseOnControlsRemoval ?? this.hideMouseOnControlsRemoval,
       controlsHoverDuration:
@@ -375,7 +381,14 @@ class _MaterialDesktopVideoControls extends StatefulWidget {
 class _MaterialDesktopVideoControlsState
     extends State<_MaterialDesktopVideoControls> {
   late bool mount;
-  late bool visible;
+  late bool _visible;
+
+  bool get visible => _visible;
+
+  set visible(bool value) {
+    _visible = value;
+    _theme(context).visible?.value = value;
+  }
 
   Timer? _timer;
 
@@ -405,7 +418,7 @@ class _MaterialDesktopVideoControlsState
     super.didChangeDependencies();
     if (subscriptions.isEmpty) {
       mount = _theme(context).visibleOnMount;
-      visible = _theme(context).visibleOnMount;
+      _visible = _theme(context).visibleOnMount;
 
       subscriptions.addAll(
         [
