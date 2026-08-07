@@ -55,7 +55,12 @@ void nativeEnsureInitialized({String? libmpv}) {
     final cmd = 'quit'.toNativeUtf8();
     try {
       for (final reference in references) {
-        mpv.mpv_command_string(reference.cast(), cmd.cast());
+        final ctx = reference.cast<generated.mpv_handle>();
+        // A hot restart deletes the Dart callback from the previous isolate.
+        // Detach it from libmpv before requesting shutdown, otherwise libmpv
+        // may invoke the deleted callback while emitting MPV_EVENT_SHUTDOWN.
+        Initializer(mpv).dispose(ctx);
+        mpv.mpv_command_string(ctx, cmd.cast());
       }
     } finally {
       calloc.free(cmd);

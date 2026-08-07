@@ -60,6 +60,12 @@ class InitializerNativeCallable {
   void dispose(Pointer<generated.mpv_handle> ctx) {
     _locks.remove(ctx.address);
     _eventCallbacks.remove(ctx.address);
+
+    // libmpv may emit shutdown events after the Dart-side event handlers have
+    // been removed. Detach the native callback before closing NativeCallable
+    // so a later wakeup cannot enter deleted Dart code.
+    mpv.mpv_set_wakeup_callback(ctx, nullptr, nullptr);
+
     _wakeUpNativeCallables.remove(ctx.address)?.close();
   }
 
